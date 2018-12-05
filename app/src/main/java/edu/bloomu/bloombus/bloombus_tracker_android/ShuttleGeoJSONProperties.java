@@ -1,22 +1,22 @@
 package edu.bloomu.bloombus.bloombus_tracker_android;
 
-class ShuttleGeoJSONProperties {
-    String loopKey;
-    String loopKeyDisplayName;
-    long unixTime;
-    long speed;
-    long altitude;
-    String loop;
-    long[] prevCoordinates;
+import java.util.List;
 
-    public ShuttleGeoJSONProperties(String loopKey, String loopKeyDisplayName, long unixTime,
-                                    long speed, long altitude, String loop, long[] prevCoordinates) {
+class ShuttleGeoJSONProperties {
+    public String loopKey;
+    public String loopDisplayName;
+    public long timestamp;
+    public float speed;
+    public double altitude;
+    public List<Double> prevCoordinates;
+
+    public ShuttleGeoJSONProperties(String loopKey, String loopDisplayName, long timestamp,
+                                    float speed, double altitude, List<Double> prevCoordinates) {
         this.loopKey = loopKey;
-        this.loopKeyDisplayName = loopKeyDisplayName;
-        this.unixTime = unixTime;
+        this.loopDisplayName = loopDisplayName;
+        this.timestamp = timestamp;
         this.speed = speed;
         this.altitude = altitude;
-        this.loop = loop;
         this.prevCoordinates = prevCoordinates;
     }
 }

@@ -1,0 +1,99 @@
+{
+  "project_info": {
+    "project_number": "740651108770",
+    "firebase_url": "https://bloombus-163620.firebaseio.com",
+    "project_id": "bloombus-163620",
+    "storage_bucket": "bloombus-163620.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:740651108770:android:b2655d5eb57a95eb",
+        "android_client_info": {
+          "package_name": "edu.bloomu.bloombus.bloombus_tracker_android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "740651108770-0jur9ke9gaa2s3hqsu2l7nimhcd0prmg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "edu.bloomu.bloombus.bloombus_tracker_android",
+            "certificate_hash": "5e71ac6e4ea7cf5a48d4b1d4b98d1040f0c35b2a"
+          }
+        },
+        {
+          "client_id": "740651108770-s7n6ff0mavh1tkddm5itk2t6jj5f9671.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCz5j5JmFb-8aC3AxcjDRmDj1gple9F1Lo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "740651108770-s7n6ff0mavh1tkddm5itk2t6jj5f9671.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:740651108770:android:91133bce6a8fceda",
+        "android_client_info": {
+          "package_name": "edu.bloomu.bloombus_tracker.bloombus_tracker_android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "740651108770-r7tj26ntkd6bplftarc3pufebhng0rkf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "edu.bloomu.bloombus_tracker.bloombus_tracker_android",
+            "certificate_hash": "c82bf2641e9f6a8df11483c1dfc4adbd6f12eee0"
+          }
+        },
+        {
+          "client_id": "740651108770-s7n6ff0mavh1tkddm5itk2t6jj5f9671.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCz5j5JmFb-8aC3AxcjDRmDj1gple9F1Lo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "740651108770-s7n6ff0mavh1tkddm5itk2t6jj5f9671.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
