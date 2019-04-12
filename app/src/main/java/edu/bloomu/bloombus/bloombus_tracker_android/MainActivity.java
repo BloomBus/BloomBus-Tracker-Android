@@ -66,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private List<Double> mPrevCoordinates;
 
     // Static fields
+    private static final String TAG = "bloombus-tracker: MainActivity";
     private static final int MY_PERMISSIONS_REQUEST_FINE_LOCATION = 42;
     private static final float ZOOM_LEVEL = 14;
     private DatabaseReference mNewShuttleRef;
@@ -74,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
