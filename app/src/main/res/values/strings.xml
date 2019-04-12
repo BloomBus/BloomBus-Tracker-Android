@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BloomBus-Tracker-Android</string>
+    <string name="app_name">BloomBus Tracker</string>
     <string name="action_settings">Settings</string>
     <string-array name="loop_names_display">
         <item>Campus Loop</item>

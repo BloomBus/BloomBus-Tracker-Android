@@ -2,6 +2,7 @@ package edu.bloomu.bloombus.bloombus_tracker_android;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
@@ -20,6 +21,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -64,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private UUID mUUID;
     private boolean mTrackingPaused;
     private List<Double> mPrevCoordinates;
+    private PackageInfo mPackageInfo;
 
     // Static fields
     private static final String TAG = "bloombus-tracker: MainActivity";
@@ -114,11 +117,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         randomizeUUID();
         mMapFragment = (SupportMapFragment) getSupportFragmentManager()
             .findFragmentById(R.id.map);
+        try {
+            mPackageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "Could not find PackageInfo", e);
+        }
 
         initLocationService();
     }
 
     private void randomizeUUID() {
+        if (mNewShuttleRef != null) {
+            mNewShuttleRef.removeValue();
+        }
         mUUID = UUID.randomUUID();
         mNewShuttleRef = mShuttlesReference.child(mUUID.toString());
         mNewShuttleRef.onDisconnect().removeValue();
@@ -173,6 +184,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             System.currentTimeMillis(),
                             location.getSpeed(),
                             location.getAltitude(),
+                            mPackageInfo.versionName,
                             mPrevCoordinates
                         );
                         List<Double> shuttleCoords = new ArrayList<>(Arrays.asList(location.getLatitude(), location.getLongitude()));
@@ -202,9 +214,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         } else {
             ActivityCompat.requestPermissions(
-                    MainActivity.this,
-                    new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
-                    MY_PERMISSIONS_REQUEST_FINE_LOCATION
+                MainActivity.this,
+                new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
+                MY_PERMISSIONS_REQUEST_FINE_LOCATION
             );
         }
     }
