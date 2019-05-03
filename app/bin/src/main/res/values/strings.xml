@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">BloomBus Tracker</string>
+    <string name="action_settings">Settings</string>
+    <string-array name="loop_names_display">
+        <item>Campus Loop</item>
+        <item>Wal-Mart</item>
+        <item>Downtown Loop</item>
+        <item>Honeysuckle</item>
+        <item>Late Night Shuttle</item>
+    </string-array>
+    <string-array name="loop_names_encoded">
+        <item>campus</item>
+        <item>walmart</item>
+        <item>downtown</item>
+        <item>honeysuckle</item>
+        <item>latenight</item>
+    </string-array>
+    <string name="title_activity_maps">Map</string>
+</resources>

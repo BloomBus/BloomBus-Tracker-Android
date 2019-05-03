@@ -8,46 +8,45 @@ import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.media.midi.MidiOutputPort;
-import android.nfc.NfcAdapter;
-import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.LocationSource;
-import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.mapbox.geojson.Point;
+import com.mapbox.turf.TurfClassification;
+import com.mapbox.turf.TurfMeasurement;
+
+import org.apache.commons.collections4.BidiMap;
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,10 +59,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Spinner mLoopSpinner;
 
     // Private fields
-    private FusedLocationProviderClient mFusedLocationClient;
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mShuttlesReference;
+    private DatabaseReference mStopsReference;
+    private DatabaseReference mLoopsReference;
+    private BidiMap<String, Point> mAllStopsDictionary;
+    private HashMap<String, List<String>> mLoopsDictionary;
+    private HashMap<String, String> mLoopNameDictionary;
+    private List<Point> mCurrentLoopStopsList;
     private UUID mUUID;
+    private String mLoopKey;
+    private String mLoopKeyDisplayName;
     private boolean mTrackingPaused;
     private List<Double> mPrevCoordinates;
     private PackageInfo mPackageInfo;
@@ -79,11 +85,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         mTrackingPaused = false;
-        mFab = (FloatingActionButton) findViewById(R.id.fab);
+        mFab = findViewById(R.id.fab);
         mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -97,24 +103,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mNewShuttleRef.removeValue();
             }
         });
-
         mLoopSpinner = findViewById(R.id.loopSpinner);
-        mLoopSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                randomizeUUID();
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        });
 
         mPrevCoordinates = new ArrayList<>(Arrays.asList(41.012101, -76.4478475));
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mShuttlesReference = mFirebaseDatabase.getReference("shuttles");
-        randomizeUUID();
+        mStopsReference = mFirebaseDatabase.getReference("stops");
+        mLoopsReference = mFirebaseDatabase.getReference("loops");
+        mCurrentLoopStopsList = new LinkedList<>();
+
+        // Triggers callback chain: buildLoopsDictionary => buildStopsDictionary => onLoopSelectionChange
+        this.buildLoopsDictionary();
+
         mMapFragment = (SupportMapFragment) getSupportFragmentManager()
             .findFragmentById(R.id.map);
         try {
@@ -126,6 +126,58 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         initLocationService();
     }
 
+    private void buildLoopsDictionary() {
+        this.mLoopsDictionary = new HashMap<>();
+        mLoopsReference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot loopSnapshot: dataSnapshot.child("features").getChildren()) {
+                    DataSnapshot propertiesSnapshot = loopSnapshot.child("properties");
+                    String loopKey = (String) propertiesSnapshot.child("key").getValue();
+                    List<String> stopKeys = new LinkedList<>();
+                    for (DataSnapshot stopKeySnapshot : propertiesSnapshot.child("stops").getChildren()) {
+                        stopKeys.add(stopKeySnapshot.getValue(String.class));
+                    }
+                    mLoopsDictionary.put(loopKey, stopKeys);
+                }
+
+                mLoopSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                        onLoopSelectionChange();
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) {}
+                });
+                buildStopsDictionary();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        });
+    }
+
+    private void buildStopsDictionary() {
+        mAllStopsDictionary = new DualHashBidiMap<>();
+        mStopsReference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot stopSnapshot: dataSnapshot.getChildren()) {
+                    DataSnapshot coordsSnapshot = stopSnapshot.child("geometry").child("coordinates");
+                    mAllStopsDictionary.put(stopSnapshot.getKey(), Point.fromLngLat(
+                        coordsSnapshot.child("0").getValue(Double.class),
+                        coordsSnapshot.child("1").getValue(Double.class)
+                    ));
+                }
+                onLoopSelectionChange();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        });
+    }
+
     private void randomizeUUID() {
         if (mNewShuttleRef != null) {
             mNewShuttleRef.removeValue();
@@ -133,6 +185,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mUUID = UUID.randomUUID();
         mNewShuttleRef = mShuttlesReference.child(mUUID.toString());
         mNewShuttleRef.onDisconnect().removeValue();
+    }
+
+    private void onLoopSelectionChange() {
+        mLoopKey = getResources().getStringArray(R.array.loop_names_encoded)[mLoopSpinner.getSelectedItemPosition()];
+        mLoopKeyDisplayName = (String) mLoopSpinner.getSelectedItem();
+        mCurrentLoopStopsList.clear();
+        if (mMap != null) mMap.clear();
+        System.out.println(mLoopKey);
+        List<String> stopKeys = mLoopsDictionary.get(mLoopKey);
+        for (String stopKey : stopKeys) {
+            Point stopPoint = mAllStopsDictionary.get(stopKey);
+            mCurrentLoopStopsList.add(stopPoint);
+            mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(stopPoint.latitude(), stopPoint.longitude()))
+                .title(stopKey)
+            );
+        }
+        this.randomizeUUID();
     }
 
     @Override
@@ -167,20 +237,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 public void onLocationChanged(Location location) {
                     if (!mTrackingPaused) {
                         Log.d("LatLng", location.getLatitude() + " " + location.getLongitude());
-                        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                        Point currentPoint = Point.fromLngLat(location.getLongitude(), location.getLatitude());
                         CameraPosition cameraPosition = new CameraPosition.Builder()
-                            .target(latLng)
+                            .target(new LatLng(location.getLatitude(), location.getLongitude()))
                             .zoom(ZOOM_LEVEL)
                             .build();
                         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
-                        // Construct ShuttleInformation object
-                        String loopKey = getResources().getStringArray(R.array.loop_names_encoded)[mLoopSpinner.getSelectedItemPosition()];
-                        String loopKeyDisplayName = (String) mLoopSpinner.getSelectedItem();
+                        double minDistance = Double.MAX_VALUE;
+                        Point nearestPoint = null;
+                        for (Point p : mCurrentLoopStopsList) {
+                            double dist = TurfMeasurement.distance(currentPoint, p, "meters");
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                nearestPoint = p;
+                            }
+                        }
+                        if ((nearestPoint != null) && (minDistance < 20.0) && (location.getSpeed() < 4.5)) {
+                            Snackbar.make(findViewById(R.id.coordinatorLayout), "Arrived at: " + mAllStopsDictionary.getKey(nearestPoint), Snackbar.LENGTH_SHORT).show();
+                        }
 
+                        // Construct ShuttleInformation object
                         ShuttleGeoJSONProperties shuttleProps = new ShuttleGeoJSONProperties(
-                            loopKey,
-                            loopKeyDisplayName,
+                            mLoopKey,
+                            mLoopKeyDisplayName,
                             System.currentTimeMillis(),
                             location.getSpeed(),
                             location.getAltitude(),
