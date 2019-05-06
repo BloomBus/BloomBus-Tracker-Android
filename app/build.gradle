@@ -2,6 +2,20 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.google.gms.google-services'
 
 android {
+    signingConfigs {
+        release {
+            storeFile file('C:\\Users\\Zollverein\\android-keystore.jks')
+            storePassword 'schlussel'
+            keyAlias = 'bloombus-tracker-android'
+            keyPassword 'schlussel'
+        }
+        debug {
+            storeFile file('C:\\Users\\Zollverein\\android-keystore.jks')
+            storePassword 'schlussel'
+            keyAlias = 'bloombus-tracker-android'
+            keyPassword 'schlussel'
+        }
+    }
     compileSdkVersion 28
     compileOptions {
         sourceCompatibility 1.8
@@ -17,6 +31,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.debug
         }
     }
 }
@@ -24,16 +42,16 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    implementation 'com.android.support.constraint:constraint-layout:2.0.0-alpha5'
     implementation 'com.android.support:design:28.0.0'
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13-beta-2'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'com.google.android.gms:play-services-location:16.0.0'
-    implementation 'com.google.android.gms:play-services-maps:16.0.0'
-    implementation 'com.google.firebase:firebase-core:16.0.5'
-    implementation 'com.google.firebase:firebase-database:16.0.5'
+    implementation 'com.google.android.gms:play-services-maps:16.1.0'
+    implementation 'com.google.firebase:firebase-core:16.0.8'
+    implementation 'com.google.firebase:firebase-database:16.1.0'
     implementation 'com.mapbox.mapboxsdk:mapbox-sdk-turf:4.7.0'
-    implementation 'org.apache.commons:commons-collections4:4.0'
+    implementation 'org.apache.commons:commons-collections4:4.3'
     implementation 'org.apache.commons:commons-lang3:3.9'
 }

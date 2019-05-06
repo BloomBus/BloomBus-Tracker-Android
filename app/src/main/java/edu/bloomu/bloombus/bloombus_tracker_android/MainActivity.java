@@ -309,6 +309,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     if (location.getSpeed() > mShuttleSpeedThresholdMetersPerSec) {
                                         onShuttleDepartFromStop(stopKey);
                                     } else { // Shuttle exited shuttle proximity improperly, destroy dwelling record
+                                        mIsDwelling = false;
                                         mStopWatch.reset();
                                         Snackbar.make(findViewById(R.id.coordinatorLayout), "Shuttle exited proximity improperly.", Snackbar.LENGTH_LONG).show();
                                     }
@@ -318,6 +319,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     if (location.getSpeed() < mShuttleSpeedThresholdMetersPerSec) {
                                         onShuttleArriveAtStop(stopKey);
                                     } else { // Shuttle entered shuttle proximity improperly, destroy dwelling record
+                                        mIsDwelling = true;
                                         mStopWatch.reset();
                                         Snackbar.make(findViewById(R.id.coordinatorLayout), "Shuttle entered proximity improperly.", Snackbar.LENGTH_LONG).show();
                                     }
