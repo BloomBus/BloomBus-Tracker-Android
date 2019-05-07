@@ -16,4 +16,5 @@
         <item>latenight</item>
     </string-array>
     <string name="title_activity_maps">Map</string>
+    <string name="action_privacy_policy_title">Privacy Policy</string>
 </resources>
