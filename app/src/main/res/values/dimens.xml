@@ -1,3 +1,6 @@
 <resources>
     <dimen name="fab_margin">16dp</dimen>
+    <dimen name="overlay_width">240dp</dimen>
+    <dimen name="overlay_padding">8dp</dimen>
+    <dimen name="spinner_height">60dp</dimen>
 </resources>

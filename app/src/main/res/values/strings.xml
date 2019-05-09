@@ -16,5 +16,10 @@
         <item>latenight</item>
     </string-array>
     <string name="title_activity_maps">Map</string>
+    <string name="display_overlay_switch_title">Display Overlay</string>
     <string name="action_privacy_policy_title">Privacy Policy</string>
+    <string name="overlay_speed_label">Speed (m/s):</string>
+    <string name="overlay_bearing_label">Bearing (deg):</string>
+    <string name="overlay_altitude_label">Altitude (m):</string>
+    <string name="overlay_dwelling_label">Dwelling:</string>
 </resources>

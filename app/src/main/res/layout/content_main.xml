@@ -1,23 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/linearLayout"
+    android:id="@+id/constraintLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginTop="?attr/actionBarSize"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true"
+    android:gravity="center">
 
-    <Spinner
-        android:id="@+id/loopSpinner"
+    <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:entries="@array/loop_names_display" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        map:layout_constraintBottom_toBottomOf="parent"
+        map:layout_constraintEnd_toEndOf="parent"
+        map:layout_constraintStart_toStartOf="parent"
+        map:layout_constraintTop_toTopOf="parent">
 
-    <FrameLayout
-        android:id="@+id/map_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-    </FrameLayout>
-</LinearLayout>
+        <Spinner
+            android:id="@+id/loopSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/spinner_height"
+            android:entries="@array/loop_names_display" />
+
+        <FrameLayout
+            android:id="@+id/map_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+        </FrameLayout>
+    </LinearLayout>
+
+    <TableLayout
+        android:id="@+id/overlayLayout"
+        android:layout_width="@dimen/overlay_width"
+        android:layout_height="wrap_content"
+        android:background="#CFEEEEEE"
+        android:columnCount="2"
+        android:padding="@dimen/overlay_padding"
+        map:layout_constraintBottom_toBottomOf="parent"
+        map:layout_constraintLeft_toLeftOf="parent">
+
+        <TableRow android:id="@+id/speedRow">
+
+            <TextView
+                android:id="@+id/speedLabel"
+                android:text="@string/overlay_speed_label" />
+
+            <TextView
+                android:id="@+id/speedTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </TableRow>
+
+        <TableRow
+            android:id="@+id/bearingRow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/bearingLabel"
+                android:text="@string/overlay_bearing_label" />
+
+            <TextView
+                android:id="@+id/bearingTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </TableRow>
+
+        <TableRow
+            android:id="@+id/altitudeRow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/altitudeLabel"
+                android:text="@string/overlay_altitude_label" />
+
+            <TextView
+                android:id="@+id/altitudeTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </TableRow>
+
+        <TableRow android:id="@+id/isDwellingRow">
+
+            <TextView
+                android:id="@+id/isDwellingLabel"
+                android:text="@string/overlay_dwelling_label" />
+
+            <TextView
+                android:id="@+id/isDwellingTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </TableRow>
+
+    </TableLayout>
+</android.support.constraint.ConstraintLayout>

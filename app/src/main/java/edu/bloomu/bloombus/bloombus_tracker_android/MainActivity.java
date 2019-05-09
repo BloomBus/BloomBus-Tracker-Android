@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
@@ -26,6 +28,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Spinner;
+import android.widget.TableLayout;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -36,7 +40,6 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -49,11 +52,12 @@ import com.mapbox.turf.TurfMeasurement;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.time.StopWatch;
+import org.w3c.dom.Text;
 
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Timer;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -63,6 +67,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private FloatingActionButton mFab;
     private Spinner mLoopSpinner;
+    private TextView mSpeedTextView;
+    private TextView mBearingTextView;
+    private TextView mAltitudeTextView;
+    private TextView mIsDwellingTextView;
+    private TableLayout mOverlayLayout;
 
     // Private fields
     private FirebaseDatabase mFirebaseDatabase;
@@ -96,6 +105,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         new LatLng(40.989417, -76.493869),
         new LatLng(41.021290, -76.443038)
     );
+    private static final DecimalFormat overlaySpeedDF = new DecimalFormat("0.####");
+    private static final DecimalFormat overlayBearingDF = new DecimalFormat("0.####");
+    private static final DecimalFormat overlayAltitudeDF = new DecimalFormat("0.####");
+    private static final DecimalFormat overlayLatLngDF = new DecimalFormat("0.####");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,6 +135,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
         mLoopSpinner = findViewById(R.id.loopSpinner);
+        mSpeedTextView = findViewById(R.id.speedTextView);
+        mBearingTextView = findViewById(R.id.bearingTextView);
+        mAltitudeTextView = findViewById(R.id.altitudeTextView);
+        mIsDwellingTextView = findViewById(R.id.isDwellingTextView);
+        mIsDwellingTextView.setText("false");
+        mOverlayLayout = findViewById(R.id.overlayLayout);
 
         LatLng defaultLatLng = new LatLng(DEFAULT_LAT, DEFAULT_LNG);
         mPrevCoordinates = defaultLatLng;
@@ -259,10 +278,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.action_settings:
+            case R.id.display_overlay_switch:
+                if (item.isChecked()) {
+                    item.setChecked(false);
+                    mOverlayLayout.setVisibility(View.INVISIBLE);
+                } else {
+                    item.setChecked(true);
+                    mOverlayLayout.setVisibility(View.VISIBLE);
+                }
                 return true;
             case R.id.action_privacy_policy:
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://firebasestorage.googleapis.com/v0/b/bloombus-163620.appspot.com/o/bloombus_tracker_privacy_policy.html?alt=media&token=6a263e9a-fcb8-422f-bfae-50e675b91ac0")));
+                return true;
+            case R.id.action_settings:
                 return true;
             default:
                 // If we got here, the user's action was not recognized.
@@ -299,11 +327,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 nearestPoint = p;
                             }
                         }
-                        if (mIsDwelling) {
-
-                        } else {
-
-                        }
                         if (nearestPoint != null) {
                             String stopKey = mAllStopsDictionary.getKey(nearestPoint);
                             if (mIsDwelling) {
@@ -311,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     if (location.getSpeed() > mShuttleSpeedThresholdMetersPerSec) {
                                         onShuttleDepartFromStop(stopKey);
                                     } else { // Shuttle exited shuttle proximity improperly, destroy dwelling record
-                                        mIsDwelling = false;
+                                        setIsDwelling(false);
                                         mStopWatch.reset();
                                         Snackbar.make(findViewById(R.id.coordinatorLayout), "Shuttle exited proximity improperly.", Snackbar.LENGTH_LONG).show();
                                     }
@@ -321,7 +344,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     if (location.getSpeed() < mShuttleSpeedThresholdMetersPerSec) {
                                         onShuttleArriveAtStop(stopKey);
                                     } else { // Shuttle entered shuttle proximity improperly, destroy dwelling record
-                                        mIsDwelling = true;
+                                        setIsDwelling(true);
                                         mStopWatch.reset();
                                         Snackbar.make(findViewById(R.id.coordinatorLayout), "Shuttle entered proximity improperly.", Snackbar.LENGTH_LONG).show();
                                     }
@@ -329,13 +352,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             }
                         }
 
+                        float speed = location.getSpeed();
+                        float bearing = location.getBearing();
+                        double altitude = location.getAltitude();
+                        String latLng = "("
+                            + overlayLatLngDF.format(location.getLatitude()) + ", "
+                            + overlayLatLngDF.format(location.getLongitude()) + ")";
+
+                        mSpeedTextView.setText(overlaySpeedDF.format(speed));
+                        mBearingTextView.setText(overlayBearingDF.format(bearing));
+                        mAltitudeTextView.setText(overlayAltitudeDF.format(altitude));
+
                         // Construct ShuttleInformation object
                         ShuttleGeoJSONProperties shuttleProps = new ShuttleGeoJSONProperties(
                             mLoopKey,
                             mLoopKeyDisplayName,
                             System.currentTimeMillis(),
-                            location.getSpeed(),
-                            location.getAltitude(),
+                            speed,
+                            bearing,
+                            altitude,
                             mPackageInfo.versionName,
                             mPrevCoordinates
                         );
@@ -373,6 +408,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    private void setIsDwelling(boolean isDwelling) {
+        mIsDwelling = isDwelling;
+        mIsDwellingTextView.setText(Boolean.toString(isDwelling));
+        mIsDwellingTextView.setTextColor(isDwelling ? Color.GREEN : Color.BLACK);
+        mIsDwellingTextView.setTypeface(mIsDwellingTextView.getTypeface(), isDwelling ? Typeface.BOLD : Typeface.NORMAL);
+    }
+
     private void onShuttleArriveAtStop(String stopKey) {
         if (mStopWatch.isStopped()) {
             // Should only happen after app is started or if shuttle improperly entered stop
@@ -381,10 +423,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             mStopWatch.stop();
             float duration = mStopWatch.getTime() / 1000F;
-            String message = String.format("Arrived at: %s after %f seconds.", stopKey, duration);
-            Snackbar.make(findViewById(R.id.coordinatorLayout), message, Snackbar.LENGTH_INDEFINITE).show();
             mStopWatch.reset();
-            mIsDwelling = true;
+            setIsDwelling(true);
             mStopWatch.start();
         }
     }
@@ -397,11 +437,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             mStopWatch.stop();
             float duration = mStopWatch.getTime() / 1000F;
-            String message = String.format("Departed from: %s after %f seconds.", stopKey, duration);
             mStopWatch.reset();
-            mIsDwelling = false;
+            setIsDwelling(false);
             mStopWatch.start();
-            Snackbar.make(findViewById(R.id.coordinatorLayout), message, Snackbar.LENGTH_INDEFINITE).show();
         }
     }
 

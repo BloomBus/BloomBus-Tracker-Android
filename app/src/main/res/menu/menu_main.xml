@@ -3,6 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="edu.bloomu.bloombus.bloombus_tracker_android.MainActivity">
     <item
+        android:id="@+id/display_overlay_switch"
+        android:checkable="true"
+        android:checked="true"
+        android:clickable="true"
+        android:title="@string/display_overlay_switch_title"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_privacy_policy"
         android:enabled="true"
         android:title="@string/action_privacy_policy_title"
