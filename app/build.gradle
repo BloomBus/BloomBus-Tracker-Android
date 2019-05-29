@@ -52,6 +52,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-core:16.0.8'
     implementation 'com.google.firebase:firebase-database:16.1.0'
     implementation 'com.mapbox.mapboxsdk:mapbox-sdk-turf:4.7.0'
+    implementation 'com.google.maps.android:android-maps-utils:0.5+'
     implementation 'org.apache.commons:commons-collections4:4.3'
     implementation 'org.apache.commons:commons-lang3:3.9'
 }

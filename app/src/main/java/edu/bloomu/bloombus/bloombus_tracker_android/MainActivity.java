@@ -41,18 +41,23 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.maps.android.data.Feature;
+import com.google.maps.android.data.geojson.GeoJsonFeature;
+import com.google.maps.android.data.geojson.GeoJsonLayer;
+import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
 import com.mapbox.geojson.Point;
 import com.mapbox.turf.TurfMeasurement;
 
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.time.StopWatch;
-import org.w3c.dom.Text;
+import org.json.JSONObject;
 
 import java.text.DecimalFormat;
 import java.util.HashMap;
@@ -79,8 +84,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DatabaseReference mNewShuttleRef;
     private DatabaseReference mStopsReference;
     private DatabaseReference mLoopsReference;
+    private DatabaseReference mLoopStopsReference;
     private BidiMap<String, Point> mAllStopsDictionary;
-    private HashMap<String, List<String>> mLoopsDictionary;
+    private HashMap<String, List<String>> mLoopStopsDictionary;
+    private HashMap<String, GeoJsonFeature> mLoopGeoJsonFeatureDictionary;
+
     private List<Point> mCurrentLoopStopsList;
     private UUID mUUID;
     private String mLoopKey;
@@ -148,6 +156,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mShuttlesReference = mFirebaseDatabase.getReference("shuttles");
         mStopsReference = mFirebaseDatabase.getReference("stops");
         mLoopsReference = mFirebaseDatabase.getReference("loops");
+        mLoopStopsReference = mFirebaseDatabase.getReference("loop-stops");
         mCurrentLoopStopsList = new LinkedList<>();
         mStopWatch = new StopWatch();
 
@@ -180,19 +189,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private void buildLoopsDictionary() {
-        this.mLoopsDictionary = new HashMap<>();
+    private void buildLoopsLayer() {
         mLoopsReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for (DataSnapshot loopSnapshot: dataSnapshot.child("features").getChildren()) {
-                    DataSnapshot propertiesSnapshot = loopSnapshot.child("properties");
-                    String loopKey = (String) propertiesSnapshot.child("key").getValue();
+                mLoopGeoJsonFeatureDictionary = new HashMap<>();
+                GeoJsonLayer tempLayer = new GeoJsonLayer(mMap, new JSONObject((HashMap) dataSnapshot.getValue()));
+                for (GeoJsonFeature feature : tempLayer.getFeatures()) {
+                    String loopKey = feature.getProperty("key");
+                    mLoopGeoJsonFeatureDictionary.put(loopKey, feature);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        });
+    }
+
+    private void buildLoopsDictionary() {
+        this.mLoopStopsDictionary = new HashMap<>();
+        mLoopStopsReference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot loopSnapshot: dataSnapshot.getChildren()) {
+                    String loopKey = loopSnapshot.getKey();
                     List<String> stopKeys = new LinkedList<>();
-                    for (DataSnapshot stopKeySnapshot : propertiesSnapshot.child("stops").getChildren()) {
+                    for (DataSnapshot stopKeySnapshot : loopSnapshot.getChildren()) {
                         stopKeys.add(stopKeySnapshot.getValue(String.class));
                     }
-                    mLoopsDictionary.put(loopKey, stopKeys);
+                    mLoopStopsDictionary.put(loopKey, stopKeys);
                 }
 
                 mLoopSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -248,7 +273,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mCurrentLoopStopsList.clear();
         if (mMap != null) mMap.clear();
         System.out.println(mLoopKey);
-        List<String> stopKeys = mLoopsDictionary.get(mLoopKey);
+        List<String> stopKeys = mLoopStopsDictionary.get(mLoopKey);
         for (String stopKey : stopKeys) {
             Point stopPoint = mAllStopsDictionary.get(stopKey);
             LatLng stopLatLng = new LatLng(stopPoint.latitude(), stopPoint.longitude());
@@ -264,6 +289,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .position(stopLatLng)
                 .title(stopKey)
             );
+            GeoJsonLayer loopsLayer = new GeoJsonLayer(mMap, new JSONObject());
+            GeoJsonLineStringStyle style = new GeoJsonLineStringStyle();
+            GeoJsonFeature loopFeature = mLoopGeoJsonFeatureDictionary.get(mLoopKey);
+            style.setColor(Color.parseColor(loopFeature.getProperty("color")));
+            loopFeature.setLineStringStyle(style);
+            loopsLayer.addFeature(loopFeature);
+            loopsLayer.addLayerToMap();
         }
         this.randomizeUUID();
     }
@@ -449,6 +481,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         try {
             mMap.setMyLocationEnabled(true);
             mMap.getUiSettings().setMyLocationButtonEnabled(true);
+            buildLoopsLayer();
         } catch (SecurityException se) {
             se.printStackTrace();
         }
