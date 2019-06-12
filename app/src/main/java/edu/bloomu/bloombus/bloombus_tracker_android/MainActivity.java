@@ -132,14 +132,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mTrackingPaused = !mTrackingPaused;
-                Drawable icon = ContextCompat.getDrawable(
-                        getApplicationContext(),
-                        mTrackingPaused ? R.drawable.ic_play_arrow_white_24dp
-                                : R.drawable.ic_pause_white_24dp
-                );
-                mFab.setImageDrawable(icon);
-                mNewShuttleRef.removeValue();
+                toggleTracking();
             }
         });
         mLoopSpinner = findViewById(R.id.loopSpinner);
@@ -187,6 +180,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } catch (PackageManager.NameNotFoundException e) {
             Log.e(TAG, "Could not find PackageInfo", e);
         }
+    }
+
+    private void toggleTracking() {
+        mTrackingPaused = !mTrackingPaused;
+        Drawable icon = ContextCompat.getDrawable(
+                getApplicationContext(),
+                mTrackingPaused ? R.drawable.ic_play_arrow_white_24dp
+                        : R.drawable.ic_pause_white_24dp
+        );
+        mFab.setImageDrawable(icon);
+        mNewShuttleRef.removeValue();
     }
 
     private void buildLoopsLayer() {
@@ -485,5 +489,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } catch (SecurityException se) {
             se.printStackTrace();
         }
+    }
+
+    @Override
+    protected void onStop() {
+        if (!mTrackingPaused) toggleTracking();
+        super.onStop();
     }
 }
