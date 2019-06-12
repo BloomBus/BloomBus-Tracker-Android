@@ -4,16 +4,16 @@ apply plugin: 'com.google.gms.google-services'
 android {
     signingConfigs {
         release {
-            storeFile file('C:\\Users\\Zollverein\\android-keystore.jks')
-            storePassword 'schlussel'
-            keyAlias = 'bloombus-tracker-android'
-            keyPassword 'schlussel'
+            storeFile file(RELEASE_STORE_FILE)
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias = RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
         }
         debug {
-            storeFile file('C:\\Users\\Zollverein\\android-keystore.jks')
-            storePassword 'schlussel'
-            keyAlias = 'bloombus-tracker-android'
-            keyPassword 'schlussel'
+            storeFile file(RELEASE_STORE_FILE)
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias = RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
         }
     }
     compileSdkVersion 28
