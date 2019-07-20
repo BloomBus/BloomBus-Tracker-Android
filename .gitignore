@@ -13,3 +13,4 @@
 .externalNativeBuild
 deployment_cert.der
 app/release/
+*.jks
