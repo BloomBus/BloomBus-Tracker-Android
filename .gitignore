@@ -2,6 +2,7 @@
 .gradle
 /gradle.properties
 /local.properties
+/.idea/
 /.idea/caches/build_file_checksums.ser
 /.idea/libraries
 /.idea/modules.xml
