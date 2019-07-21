@@ -94,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private String mLoopKey;
     private String mLoopKeyDisplayName;
     private boolean mTrackingPaused;
-    private LatLng mPrevCoordinates;
     private PackageInfo mPackageInfo;
     private boolean mIsDwelling;
     private double mStopProximityThresholdMeters;
@@ -144,7 +143,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mOverlayLayout = findViewById(R.id.overlayLayout);
 
         LatLng defaultLatLng = new LatLng(DEFAULT_LAT, DEFAULT_LNG);
-        mPrevCoordinates = defaultLatLng;
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mShuttlesReference = mFirebaseDatabase.getReference("shuttles");
         mStopsReference = mFirebaseDatabase.getReference("stops");
@@ -407,8 +405,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             speed,
                             bearing,
                             altitude,
-                            mPackageInfo.versionName,
-                            mPrevCoordinates
+                            mPackageInfo.versionName
                         );
 
                         GeoJSONGeometry geometry = new GeoJSONGeometry("Point", currentCoords);
@@ -416,8 +413,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                         // Push to "/shuttles"
                         mNewShuttleRef.setValue(shuttle);
-
-                        mPrevCoordinates = currentCoords;
                     }
                 }
                 @Override

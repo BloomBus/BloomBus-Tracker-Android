@@ -10,7 +10,6 @@ class ShuttleGeoJSONProperties {
     public float bearing;
     public double altitude;
     public String appVersion;
-    public LatLng prevCoordinates;
 
     public ShuttleGeoJSONProperties(
         String loopKey,
@@ -19,8 +18,7 @@ class ShuttleGeoJSONProperties {
         float speed,
         float bearing,
         double altitude,
-        String appVersion,
-        LatLng prevCoordinates)
+        String appVersion)
     {
         this.loopKey = loopKey;
         this.loopDisplayName = loopDisplayName;
@@ -29,6 +27,5 @@ class ShuttleGeoJSONProperties {
         this.bearing = bearing;
         this.altitude = altitude;
         this.appVersion = appVersion;
-        this.prevCoordinates = prevCoordinates;
     }
 }
