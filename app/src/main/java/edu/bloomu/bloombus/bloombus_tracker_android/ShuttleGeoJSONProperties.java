@@ -1,6 +1,6 @@
 package edu.bloomu.bloombus.bloombus_tracker_android;
 
-import com.google.android.gms.maps.model.LatLng;
+//import com.google.android.gms.maps.model.LatLng;
 
 class ShuttleGeoJSONProperties {
     public String loopKey;

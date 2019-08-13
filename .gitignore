@@ -14,3 +14,6 @@
 deployment_cert.der
 app/release/
 *.jks
+gradle.properties
+local.properties
+/app/android-keystore.jks
