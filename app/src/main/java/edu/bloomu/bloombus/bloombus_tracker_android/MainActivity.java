@@ -92,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private HashMap<String, GeoJsonFeature> mLoopGeoJsonFeatureDictionary;
 
     private List<Point> mCurrentLoopStopsList;
+    private String mNextStop;
     private UUID mUUID;
     private UUID mHistUUID;
     private HistoricalLogInformation mHistoricalLog;
@@ -372,10 +373,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 nearestPoint = p;
                             }
                         }
-                        String targetBusStop = "";
                         if (nearestPoint != null) {
                             String stopKey = mAllStopsDictionary.getKey(nearestPoint);
-                            targetBusStop = stopKey;
                             if (mIsDwelling) {
                                 if (minDistance > mStopProximityThresholdMeters) {
                                     if (location.getSpeed() > mShuttleSpeedThresholdMetersPerSec) {
@@ -416,6 +415,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         ShuttleGeoJSONProperties shuttleProps = new ShuttleGeoJSONProperties(
                             mLoopKey,
                             mLoopKeyDisplayName,
+                            mNextStop,
                             time,
                             speed,
                             bearing,
@@ -430,8 +430,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         mNewShuttleRef.setValue(shuttle);
 
                         // Add to History log (don't push yet)
-                        if (!targetBusStop.equals(""))
-                            mHistoricalLog.histPoints.add(new HistoricalPoint(geometry.coordinates, targetBusStop, speed, time));
+                        mHistoricalLog.histPoints.add(new HistoricalPoint(geometry.coordinates, speed, time));
                     }
                 }
                 @Override
@@ -477,9 +476,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             setIsDwelling(true);
             mStopWatch.start();
 
+            getNextStop(mAllStopsDictionary.get(stopKey));
+
             mHistoricalLog.arrivalTime = System.currentTimeMillis();
+            mHistoricalLog.nextStop = mNextStop;
             // Push to /historical-logs
-            mNewHistoricalRecordRef.get(mNewHistoricalRecordRef.size() - 1).setValue(mHistoricalLog);
+            mNewHistoricalRecordRef
+                    .get(mNewHistoricalRecordRef.size() - 1)
+                    .setValue(mHistoricalLog);
         }
     }
 
@@ -497,8 +501,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             mHistoricalLog = new HistoricalLogInformation();
             mHistoricalLog.loopKey = mLoopKey;
+            mHistoricalLog.prevStop = stopKey;
             randomizeHistUUID();
         }
+    }
+
+    private void getNextStop(Point stopPoint) {
+        int idx = mCurrentLoopStopsList.indexOf(stopPoint);
+        if (idx != mCurrentLoopStopsList.size() - 1)
+            mNextStop = mAllStopsDictionary.getKey(mCurrentLoopStopsList.get(idx + 1));
+        else // We were at the end of the list and must go back to the beginning
+            mNextStop = mAllStopsDictionary.getKey(mCurrentLoopStopsList.get(0));
     }
 
     @Override

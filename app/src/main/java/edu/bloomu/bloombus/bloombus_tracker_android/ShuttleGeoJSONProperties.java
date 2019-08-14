@@ -5,6 +5,7 @@ package edu.bloomu.bloombus.bloombus_tracker_android;
 class ShuttleGeoJSONProperties {
     public String loopKey;
     public String loopDisplayName;
+    public String nextStop;
     public long timestamp;
     public float speed;
     public float bearing;
@@ -14,6 +15,7 @@ class ShuttleGeoJSONProperties {
     public ShuttleGeoJSONProperties(
         String loopKey,
         String loopDisplayName,
+        String nextStop,
         long timestamp,
         float speed,
         float bearing,
@@ -22,6 +24,7 @@ class ShuttleGeoJSONProperties {
     {
         this.loopKey = loopKey;
         this.loopDisplayName = loopDisplayName;
+        this.nextStop = nextStop;
         this.timestamp = timestamp;
         this.speed = speed;
         this.bearing = bearing;

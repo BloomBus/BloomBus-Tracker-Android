@@ -5,5 +5,7 @@ import java.util.List;
 public class HistoricalLogInformation {
     public List<HistoricalPoint> histPoints;
     public long arrivalTime;
+    public String prevStop;
+    public String nextStop;
     public String loopKey;
 }
