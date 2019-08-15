@@ -85,12 +85,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DatabaseReference mStopsReference;
     private DatabaseReference mLoopsReference;
     private DatabaseReference mLoopStopsReference;
+    private DatabaseReference mHistoricalReference;
+    private List<DatabaseReference> mNewHistoricalRecordRef;
     private BidiMap<String, Point> mAllStopsDictionary;
     private HashMap<String, List<String>> mLoopStopsDictionary;
     private HashMap<String, GeoJsonFeature> mLoopGeoJsonFeatureDictionary;
 
     private List<Point> mCurrentLoopStopsList;
+    private String mNextStop;
     private UUID mUUID;
+    private UUID mHistUUID;
+    private HistoricalLogInformation mHistoricalLog;
     private String mLoopKey;
     private String mLoopKeyDisplayName;
     private boolean mTrackingPaused;
@@ -148,6 +153,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mStopsReference = mFirebaseDatabase.getReference("stops");
         mLoopsReference = mFirebaseDatabase.getReference("loops");
         mLoopStopsReference = mFirebaseDatabase.getReference("loop-stops");
+        mHistoricalReference = mFirebaseDatabase.getReference("historical-logs");
+        mNewHistoricalRecordRef = new LinkedList<>();
         mCurrentLoopStopsList = new LinkedList<>();
         mStopWatch = new StopWatch();
 
@@ -267,6 +274,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mUUID = UUID.randomUUID();
         mNewShuttleRef = mShuttlesReference.child(mUUID.toString());
         mNewShuttleRef.onDisconnect().removeValue();
+    }
+
+    private void randomizeHistUUID() {
+        mHistUUID = UUID.randomUUID();
+        mNewHistoricalRecordRef.add(mHistoricalReference.child(mHistUUID.toString()));
     }
 
     private void onLoopSelectionChange() {
@@ -389,19 +401,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         float speed = location.getSpeed();
                         float bearing = location.getBearing();
                         double altitude = location.getAltitude();
-                        String latLng = "("
-                            + overlayLatLngDF.format(location.getLatitude()) + ", "
-                            + overlayLatLngDF.format(location.getLongitude()) + ")";
+                        //String latLng = "("
+                        //    + overlayLatLngDF.format(location.getLatitude()) + ", "
+                        //    + overlayLatLngDF.format(location.getLongitude()) + ")";
 
                         mSpeedTextView.setText(overlaySpeedDF.format(speed));
                         mBearingTextView.setText(overlayBearingDF.format(bearing));
                         mAltitudeTextView.setText(overlayAltitudeDF.format(altitude));
 
+                        long time = System.currentTimeMillis();
+
                         // Construct ShuttleInformation object
                         ShuttleGeoJSONProperties shuttleProps = new ShuttleGeoJSONProperties(
                             mLoopKey,
                             mLoopKeyDisplayName,
-                            System.currentTimeMillis(),
+                            mNextStop,
+                            time,
                             speed,
                             bearing,
                             altitude,
@@ -413,6 +428,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                         // Push to "/shuttles"
                         mNewShuttleRef.setValue(shuttle);
+
+                        // Add to History log (don't push yet)
+                        mHistoricalLog.histPoints.add(new HistoricalPoint(geometry.coordinates, speed, time));
                     }
                 }
                 @Override
@@ -457,6 +475,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mStopWatch.reset();
             setIsDwelling(true);
             mStopWatch.start();
+
+            getNextStop(mAllStopsDictionary.get(stopKey));
+
+            mHistoricalLog.arrivalTime = System.currentTimeMillis();
+            mHistoricalLog.nextStop = mNextStop;
+            // Push to /historical-logs
+            mNewHistoricalRecordRef
+                    .get(mNewHistoricalRecordRef.size() - 1)
+                    .setValue(mHistoricalLog);
         }
     }
 
@@ -471,7 +498,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mStopWatch.reset();
             setIsDwelling(false);
             mStopWatch.start();
+
+            mHistoricalLog = new HistoricalLogInformation();
+            mHistoricalLog.loopKey = mLoopKey;
+            mHistoricalLog.prevStop = stopKey;
+            randomizeHistUUID();
         }
+    }
+
+    private void getNextStop(Point stopPoint) {
+        int idx = mCurrentLoopStopsList.indexOf(stopPoint);
+        if (idx != mCurrentLoopStopsList.size() - 1)
+            mNextStop = mAllStopsDictionary.getKey(mCurrentLoopStopsList.get(idx + 1));
+        else // We were at the end of the list and must go back to the beginning
+            mNextStop = mAllStopsDictionary.getKey(mCurrentLoopStopsList.get(0));
     }
 
     @Override
