@@ -8,4 +8,8 @@ public class HistoricalLogInformation {
     public String prevStop;
     public String nextStop;
     public String loopKey;
+    
+    public HistoricalLogInformation() {
+        histPoints = new LinkedList<>();
+    }
 }
