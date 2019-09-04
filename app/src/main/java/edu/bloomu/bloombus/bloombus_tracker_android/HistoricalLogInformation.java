@@ -1,5 +1,6 @@
 package edu.bloomu.bloombus.bloombus_tracker_android;
 
+import java.util.LinkedList;
 import java.util.List;
 
 public class HistoricalLogInformation {
