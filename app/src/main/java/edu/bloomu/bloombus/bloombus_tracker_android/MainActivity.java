@@ -154,6 +154,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mLoopsReference = mFirebaseDatabase.getReference("loops");
         mLoopStopsReference = mFirebaseDatabase.getReference("loop-stops");
         mHistoricalReference = mFirebaseDatabase.getReference("historical-logs");
+        mHistoricalLog = new HistoricalLogInformation();
         mNewHistoricalRecordRef = new LinkedList<>();
         mCurrentLoopStopsList = new LinkedList<>();
         mStopWatch = new StopWatch();
