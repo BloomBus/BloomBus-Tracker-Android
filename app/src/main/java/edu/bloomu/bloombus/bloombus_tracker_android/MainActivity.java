@@ -251,8 +251,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         coordsSnapshot.child("1").getValue(Double.class)
                     ));
                 }
-                onLoopSelectionChange();
                 initLocationService();
+                onLoopSelectionChange();
             }
 
             @Override
@@ -274,7 +274,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mLoopKeyDisplayName = (String) mLoopSpinner.getSelectedItem();
         mCurrentLoopStopsList.clear();
         if (mMap != null) mMap.clear();
-        System.out.println(mLoopKey);
         List<String> stopKeys = mLoopStopsDictionary.get(mLoopKey);
         for (String stopKey : stopKeys) {
             Point stopPoint = mAllStopsDictionary.get(stopKey);
