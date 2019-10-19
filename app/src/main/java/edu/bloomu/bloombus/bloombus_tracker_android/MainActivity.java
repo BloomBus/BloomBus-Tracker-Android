@@ -41,13 +41,11 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.Polyline;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
 import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
@@ -85,11 +83,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DatabaseReference mStopsReference;
     private DatabaseReference mLoopsReference;
     private DatabaseReference mLoopStopsReference;
+    private DatabaseReference mHistoricalReference;
     private BidiMap<String, Point> mAllStopsDictionary;
     private HashMap<String, List<String>> mLoopStopsDictionary;
     private HashMap<String, GeoJsonFeature> mLoopGeoJsonFeatureDictionary;
 
     private List<Point> mCurrentLoopStopsList;
+    private String mNextStop;
     private UUID mUUID;
     private String mLoopKey;
     private String mLoopKeyDisplayName;
@@ -148,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mStopsReference = mFirebaseDatabase.getReference("stops");
         mLoopsReference = mFirebaseDatabase.getReference("loops");
         mLoopStopsReference = mFirebaseDatabase.getReference("loop-stops");
+        mHistoricalReference = mFirebaseDatabase.getReference("logs");
         mCurrentLoopStopsList = new LinkedList<>();
         mStopWatch = new StopWatch();
 
@@ -162,7 +163,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+            }
         });
 
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
@@ -183,9 +185,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void toggleTracking() {
         mTrackingPaused = !mTrackingPaused;
         Drawable icon = ContextCompat.getDrawable(
-                getApplicationContext(),
-                mTrackingPaused ? R.drawable.ic_play_arrow_white_24dp
-                        : R.drawable.ic_pause_white_24dp
+            getApplicationContext(),
+            mTrackingPaused ? R.drawable.ic_play_arrow_white_24dp
+                : R.drawable.ic_pause_white_24dp
         );
         mFab.setImageDrawable(icon);
         mNewShuttleRef.removeValue();
@@ -204,7 +206,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+            }
         });
     }
 
@@ -213,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mLoopStopsReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for (DataSnapshot loopSnapshot: dataSnapshot.getChildren()) {
+                for (DataSnapshot loopSnapshot : dataSnapshot.getChildren()) {
                     String loopKey = loopSnapshot.getKey();
                     List<String> stopKeys = new LinkedList<>();
                     for (DataSnapshot stopKeySnapshot : loopSnapshot.getChildren()) {
@@ -229,13 +232,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
 
                     @Override
-                    public void onNothingSelected(AdapterView<?> parent) {}
+                    public void onNothingSelected(AdapterView<?> parent) {
+                    }
                 });
                 buildStopsDictionary();
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+            }
         });
     }
 
@@ -244,7 +249,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mStopsReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for (DataSnapshot stopSnapshot: dataSnapshot.getChildren()) {
+                for (DataSnapshot stopSnapshot : dataSnapshot.getChildren()) {
                     DataSnapshot coordsSnapshot = stopSnapshot.child("geometry").child("coordinates");
                     mAllStopsDictionary.put(stopSnapshot.getKey(), Point.fromLngLat(
                         coordsSnapshot.child("0").getValue(Double.class),
@@ -256,7 +261,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+            }
         });
     }
 
@@ -334,9 +340,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void initLocationService() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            || ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMapFragment.getMapAsync(this);
-            LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+            LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, new LocationListener() {
                 @Override
                 public void onLocationChanged(Location location) {
@@ -364,23 +370,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             String stopKey = mAllStopsDictionary.getKey(nearestPoint);
                             if (mIsDwelling) {
                                 if (minDistance > mStopProximityThresholdMeters) {
-                                    if (location.getSpeed() > mShuttleSpeedThresholdMetersPerSec) {
-                                        onShuttleDepartFromStop(stopKey);
-                                    } else { // Shuttle exited shuttle proximity improperly, destroy dwelling record
-                                        setIsDwelling(false);
-                                        mStopWatch.reset();
-                                        Snackbar.make(findViewById(R.id.coordinatorLayout), "Shuttle exited proximity improperly.", Snackbar.LENGTH_LONG).show();
-                                    }
+                                    onShuttleDepartFromStop(stopKey);
                                 }
                             } else {
                                 if (minDistance < mStopProximityThresholdMeters) {
-                                    if (location.getSpeed() < mShuttleSpeedThresholdMetersPerSec) {
-                                        onShuttleArriveAtStop(stopKey);
-                                    } else { // Shuttle entered shuttle proximity improperly, destroy dwelling record
-                                        setIsDwelling(true);
-                                        mStopWatch.reset();
-                                        Snackbar.make(findViewById(R.id.coordinatorLayout), "Shuttle entered proximity improperly.", Snackbar.LENGTH_LONG).show();
-                                    }
+                                    onShuttleArriveAtStop(stopKey);
                                 }
                             }
                         }
@@ -388,19 +382,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         float speed = location.getSpeed();
                         float bearing = location.getBearing();
                         double altitude = location.getAltitude();
-                        String latLng = "("
-                            + overlayLatLngDF.format(location.getLatitude()) + ", "
-                            + overlayLatLngDF.format(location.getLongitude()) + ")";
 
                         mSpeedTextView.setText(overlaySpeedDF.format(speed));
                         mBearingTextView.setText(overlayBearingDF.format(bearing));
                         mAltitudeTextView.setText(overlayAltitudeDF.format(altitude));
 
+                        long time = System.currentTimeMillis();
+
                         // Construct ShuttleInformation object
                         ShuttleGeoJSONProperties shuttleProps = new ShuttleGeoJSONProperties(
                             mLoopKey,
                             mLoopKeyDisplayName,
-                            System.currentTimeMillis(),
+                            mNextStop,
+                            time,
                             speed,
                             bearing,
                             altitude,
@@ -414,14 +408,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         mNewShuttleRef.setValue(shuttle);
                     }
                 }
+
                 @Override
                 public void onProviderDisabled(String provider) {
                     // TODO Auto-generated method stub
                 }
+
                 @Override
                 public void onProviderEnabled(String provider) {
                     // TODO Auto-generated method stub
                 }
+
                 @Override
                 public void onStatusChanged(String provider, int status,
                                             Bundle extras) {
@@ -432,7 +429,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             ActivityCompat.requestPermissions(
                 MainActivity.this,
-                new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
+                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                 MY_PERMISSIONS_REQUEST_FINE_LOCATION
             );
         }
@@ -451,11 +448,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // proximity, do not use for historical data
             mStopWatch.start();
         } else {
+            Snackbar.make(findViewById(R.id.coordinatorLayout), "Arrived at stop: " + stopKey, Snackbar.LENGTH_LONG).show();
             mStopWatch.stop();
             float duration = mStopWatch.getTime() / 1000F;
             mStopWatch.reset();
             setIsDwelling(true);
             mStopWatch.start();
+
+            getNextStop(mAllStopsDictionary.get(stopKey));
+
+            HistoricalLogInformation historicalRecord = new HistoricalLogInformation(System.currentTimeMillis(), stopKey, mNextStop, mLoopKey, mUUID.toString());
+
+            // Push to /logs
+            mHistoricalReference
+                .push().setValue(historicalRecord);
+
         }
     }
 
@@ -465,12 +472,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // historical data
             mStopWatch.start();
         } else {
+            Snackbar.make(findViewById(R.id.coordinatorLayout), "Departed from stop: " + stopKey, Snackbar.LENGTH_LONG).show();
             mStopWatch.stop();
             float duration = mStopWatch.getTime() / 1000F;
             mStopWatch.reset();
             setIsDwelling(false);
             mStopWatch.start();
         }
+    }
+
+    private void getNextStop(Point stopPoint) {
+        int idx = mCurrentLoopStopsList.indexOf(stopPoint);
+        if (idx != mCurrentLoopStopsList.size() - 1)
+            mNextStop = mAllStopsDictionary.getKey(mCurrentLoopStopsList.get(idx + 1));
+        else // We were at the end of the list and must go back to the beginning
+            mNextStop = mAllStopsDictionary.getKey(mCurrentLoopStopsList.get(0));
     }
 
     @Override
