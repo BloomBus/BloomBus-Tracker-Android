@@ -458,7 +458,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             getNextStop(mAllStopsDictionary.get(stopKey));
 
-            HistoricalLogInformation historicalRecord = new HistoricalLogInformation(System.currentTimeMillis(), stopKey, mNextStop, mLoopKey);
+            HistoricalLogInformation historicalRecord = new HistoricalLogInformation(System.currentTimeMillis(), stopKey, mNextStop, mLoopKey, mUUID.toString());
 
             // Push to /logs
             mHistoricalReference
